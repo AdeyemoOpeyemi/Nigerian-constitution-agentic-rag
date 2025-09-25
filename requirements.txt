@@ -1,0 +1,22 @@
+# Environment
+python-dotenv
+requests
+
+# Streamlit (for app.py)
+streamlit
+
+# PDF handling
+PyMuPDF
+
+# LangChain core & integrations
+langchain
+langchain-community
+langchain-google-genai
+langchain-huggingface
+
+# Embeddings + Vector DB
+faiss-cpu
+sentence-transformers
+
+# Google Generative AI SDK
+google-generativeai

@@ -2,28 +2,26 @@ import os
 import requests
 import streamlit as st
 from dotenv import load_dotenv
-import google.generativeai as genai
 
-# New imports for the agentic chain
+# LangChain + Groq
+from langchain_groq import ChatGroq
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain_core.tools import tool
-# Corrected import for MessagesPlaceholder
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_community.document_loaders import PyMuPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.chains import RetrievalQA
 from langchain.memory import ConversationBufferMemory
 from langchain_core.messages import HumanMessage, AIMessage
 
 # === Load API keys from .env ===
 load_dotenv()
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
-if not GEMINI_API_KEY:
-    st.error("Please set the GEMINI_API_KEY environment variable.")
+if not GROQ_API_KEY:
+    st.error("Please set the GROQ_API_KEY environment variable.")
     st.stop()
 
 # === Step 1: Load and chunk the Nigerian Constitution PDF ===
@@ -33,7 +31,7 @@ def load_constitution(pdf_path):
     try:
         loader = PyMuPDFLoader(pdf_path)
         docs = loader.load()
-        splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+        splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
         return splitter.split_documents(docs)
     except Exception as e:
         st.error(f"❌ Error loading PDF: {e}")
@@ -74,7 +72,10 @@ def tavily_search(query: str):
 @st.cache_resource
 def get_agent_executor():
     """Initializes and returns the LangChain Agent Executor with memory."""
-    llm = ChatGoogleGenerativeAI(model="gemini-2.5-pro", google_api_key=GEMINI_API_KEY)
+    llm = ChatGroq(
+        model="llama-3.1-8b-instant",   # You can also try "llama-3.1-8b-instant" (faster/cheaper)
+        groq_api_key=GROQ_API_KEY
+    )
     embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
     
     try:
@@ -89,6 +90,7 @@ def get_agent_executor():
         chain_type="stuff",
         input_key="query"
     )
+    
     
     @tool
     def pdf_qa(query: str):
@@ -114,12 +116,12 @@ def get_agent_executor():
     agent = create_tool_calling_agent(llm, tools, prompt)
     
     # Create the agent executor with memory
-    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=False)
     return agent_executor
 
 # === Streamlit App ===
 def main():
-    st.title("🇳🇬 Nigerian Constitution Chatbot")
+    st.title("🇳🇬 Nigerian Constitution Chatbot (Groq-powered)")
     st.markdown("Ask me anything about the Nigerian Constitution! The agent will use a local PDF and can fall back to the web if needed.")
 
     # Initialize chat history
